@@ -8,41 +8,40 @@ package main
 
 import (
 	"fmt"
-	. "github.com/abitofhelp/pipeline/pipeline"
+	. "github.com/abitofhelp/go-helpers/error"
+	"github.com/abitofhelp/pipeline/cmd"
+	"gopkg.in/urfave/cli.v2"
 	"os"
-	"path/filepath"
-	"sync"
+)
+
+const (
+	kApplicationFailure = 0
+	kApplicationSuccess = 1
 )
 
 // Function main is the entry point to the application.
 func main() {
 
-	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "usage: %s directory]]\n", filepath.Base(os.Args[0]))
-		os.Exit(2)
+	app := &cli.App{
+		Name:  "pipeline",
+		Usage: "Scans a directory path for image files and injects them into a pipeline for processing.",
+		Commands: []*cli.Command{
+			&cmd.Start,
+		},
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "debug",
+				Usage: "enables debug logging",
+			},
+		},
 	}
 
-	// Create the pipeline...
-
-	pipeline, err := New(os.Args[1])
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to create the pipeline: %s", err)
-		os.Exit(2)
+	err := app.Run(os.Args)
+	if IsError(err, func(err error) {
+		fmt.Printf("The application encountered an error: %v", err)
+		os.Exit(kApplicationFailure)
+	}) {
+		fmt.Println("The application has completed successfully.")
+		os.Exit(kApplicationSuccess)
 	}
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	// Construct the pipeline...
-	go pipeline.Build(&wg)
-
-	// Start processing by the pipeline...
-
-	// Abort processing by the pipeline...  Handle exit gracefully.
-
-	// End processing by the pipeline...
-
-	// Wait for goroutines to finish...
-	wg.Wait()
-
 }

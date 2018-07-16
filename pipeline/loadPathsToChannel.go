@@ -16,9 +16,13 @@ import (
 
 // Recursively walk a file system hierarchy to locate files, and pass the paths into the pipeline for processing.
 // Parameter pathToDirectory is the path to a folder containing files to process.
-// Parameter ch is the unidirectional channel being used to feed the paths to the pipeline.
-func (p Pipeline) loadPathsToChannel(pathToDirectory string, ch chan<- string, wg *sync.WaitGroup) {
+// Parameter pathsChannel is the unidirectional channel being used to feed the paths to the pipeline.
+// Parameter commandChannel is used to start the pipeline's processing.
+func (p Pipeline) loadPathsToChannel(pathToDirectory string, pathsChannel chan<- string, commandChannel <-chan bool, wg *sync.WaitGroup) {
 	defer wg.Done()
+
+	// We want to wait until the commandChannel signals go...
+	<-commandChannel
 
 	cnt := uint64(0)
 
@@ -31,7 +35,7 @@ func (p Pipeline) loadPathsToChannel(pathToDirectory string, ch chan<- string, w
 			if de.IsRegular() {
 				wg.Add(1)
 				fmt.Printf("\ncnt: %d", cnt)
-				ch <- Join(path, de.Name())
+				pathsChannel <- Join(path, de.Name())
 				cnt++
 			}
 
